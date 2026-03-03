@@ -14,25 +14,36 @@ export class CaptureError extends Error {
 export async function capture(
   display: DisplayServer,
   outputPath: string,
+  compositor?: string,
 ): Promise<string> {
   if (display === "wayland") {
-    return captureWayland(outputPath);
+    return captureWayland(outputPath, compositor);
   }
   return captureX11(outputPath);
 }
 
-async function captureWayland(outputPath: string): Promise<string> {
-  let geometry: string;
+async function captureWayland(
+  outputPath: string,
+  compositor?: string,
+): Promise<string> {
+  // Skip slurp on GNOME — it doesn't support zwlr_layer_shell_v1
+  if (compositor !== "gnome") {
+    try {
+      const result = await execa("slurp", { timeout: 2000 });
+      const geometry = result.stdout.trim();
+      await execa("grim", ["-g", geometry, outputPath]);
+      return outputPath;
+    } catch {
+      // Fall back to gnome-screenshot
+    }
+  }
 
   try {
-    const result = await execa("slurp");
-    geometry = result.stdout.trim();
+    await execa("gnome-screenshot", ["-a", "-f", outputPath]);
+    return outputPath;
   } catch {
     throw new CaptureError("Selection cancelled.", true);
   }
-
-  await execa("grim", ["-g", geometry, outputPath]);
-  return outputPath;
 }
 
 async function captureX11(outputPath: string): Promise<string> {
