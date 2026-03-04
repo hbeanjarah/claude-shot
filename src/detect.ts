@@ -2,10 +2,12 @@ import { execaCommandSync } from "execa";
 
 export type DisplayServer = "wayland" | "x11";
 export type Terminal = "zellij" | "generic";
+export type Compositor = "gnome" | "wlroots" | "unknown";
 
 export interface Environment {
   display: DisplayServer;
   terminal: Terminal;
+  compositor: Compositor;
   tools: {
     grim: boolean;
     slurp: boolean;
@@ -15,6 +17,12 @@ export interface Environment {
     wtype: boolean;
     ydotool: boolean;
   };
+}
+
+function detectCompositor(): Compositor {
+  if (process.env.XDG_CURRENT_DESKTOP?.includes("GNOME")) return "gnome";
+  if (process.env.WAYLAND_DISPLAY && process.env.SWAYSOCK) return "wlroots";
+  return "unknown";
 }
 
 function detectDisplay(): DisplayServer {
@@ -42,6 +50,7 @@ export function detect(): Environment {
   return {
     display: detectDisplay(),
     terminal: detectTerminal(),
+    compositor: detectCompositor(),
     tools: {
       grim: hasCommand("grim"),
       slurp: hasCommand("slurp"),
