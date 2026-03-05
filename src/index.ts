@@ -4,6 +4,9 @@ import { generatePath } from "./storage.js";
 import { capture, CaptureError } from "./capture.js";
 import { inject } from "./inject.js";
 
+import { isFirstRun } from "./config.js";
+import { runSetup } from "./setup.js";
+
 program
   .name("claude-shot")
   .description("Screenshot-to-Claude Code in one shortcut")
@@ -16,6 +19,11 @@ program
   )
   .action(async (opts) => {
     const env = detect();
+
+    //
+    if (isFirstRun()) {
+      runSetup();
+    }
 
     // Check required tools
     if (env.display === "wayland") {
@@ -77,6 +85,13 @@ program
     if (opts.inject) {
       await inject(outputPath, env.display);
     }
+  });
+
+program
+  .command("setup")
+  .description("Check dependencies and configure keyboard shortcut")
+  .action(() => {
+    runSetup();
   });
 
 program.parse();
