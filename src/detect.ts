@@ -1,12 +1,10 @@
 import { execaCommandSync } from "execa";
 
 export type DisplayServer = "wayland" | "x11";
-export type Terminal = "zellij" | "generic";
 export type Compositor = "gnome" | "wlroots" | "unknown";
 
 export interface Environment {
   display: DisplayServer;
-  terminal: Terminal;
   compositor: Compositor;
   tools: {
     grim: boolean;
@@ -31,11 +29,6 @@ function detectDisplay(): DisplayServer {
   return "x11";
 }
 
-function detectTerminal(): Terminal {
-  if (process.env.ZELLIJ) return "zellij";
-  return "generic";
-}
-
 function hasCommand(name: string): boolean {
   try {
     execaCommandSync(`which ${name}`);
@@ -48,7 +41,6 @@ function hasCommand(name: string): boolean {
 export function detect(): Environment {
   return {
     display: detectDisplay(),
-    terminal: detectTerminal(),
     compositor: detectCompositor(),
     tools: {
       grim: hasCommand("grim"),
