@@ -14,16 +14,8 @@ program
     "--no-inject",
     "Capture and save only, do not type path into terminal",
   )
-  .option(
-    "-t, --terminal <type>",
-    "Force terminal type (zellij|generic|auto)",
-    "auto",
-  )
   .action(async (opts) => {
     const env = detect();
-
-    // Override terminal if specified
-    const terminal = opts.terminal === "auto" ? env.terminal : opts.terminal;
 
     // Check required tools
     if (env.display === "wayland") {
@@ -51,31 +43,22 @@ program
       }
     }
 
-    if (opts.inject && terminal !== "zellij") {
+    if (opts.inject) {
       if (env.display === "wayland" && !env.tools.wlCopy) {
         console.error(
-          "Missing wl-copy for clipboard injection. Run:\n  sudo apt install wl-clipboard",
+          "Missing wl-copy for clipboard. Run:\n  sudo apt install wl-clipboard",
         );
         process.exit(2);
       }
       if (env.display === "x11" && !env.tools.xclip) {
         console.error(
-          "Missing xclip for clipboard injection. Run:\n  sudo apt install xclip",
+          "Missing xclip for clipboard. Run:\n  sudo apt install xclip",
         );
         process.exit(2);
       }
     }
 
     const outputPath = generatePath(opts.output);
-
-    if (opts.dryRun) {
-      console.log("Environment:", env.display, "/", terminal);
-      console.log("Would save to:", outputPath);
-      if (opts.inject) {
-        console.log("Would inject path into terminal");
-      }
-      process.exit(0);
-    }
 
     // Capture
     try {
@@ -92,7 +75,7 @@ program
 
     // Inject
     if (opts.inject) {
-      await inject(outputPath, terminal, env.display);
+      await inject(outputPath, env.display);
     }
   });
 
