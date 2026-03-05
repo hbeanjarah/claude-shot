@@ -11,22 +11,26 @@ export async function inject(
     return;
   }
 
-  if (display === "wayland") {
-    await injectWayland(filePath);
-    return;
-  }
-
-  await injectX11(filePath);
+  await injectClipboard(filePath, display);
 }
 
 async function injectZellij(filePath: string): Promise<void> {
   await execa("zellij", ["action", "write-chars", filePath]);
 }
 
-async function injectWayland(filePath: string): Promise<void> {
-  await execa("wtype", [filePath]);
-}
+async function injectClipboard(
+  filePath: string,
+  display: DisplayServer,
+): Promise<void> {
+  if (display === "wayland") {
+    await execa("wl-copy", [filePath]);
+  } else {
+    await execa("xclip", ["-selection", "clipboard"], { input: filePath });
+  }
 
-async function injectX11(filePath: string): Promise<void> {
-  await execa("xdotool", ["type", "--delay", "12", filePath]);
+  await execa("notify-send", [
+    "claude-shot",
+    `Path copied — paste into Claude Code\n${filePath}`,
+    "--expire-time=3000",
+  ]);
 }
