@@ -13,9 +13,8 @@ export interface Environment {
     slurp: boolean;
     gnomeScreenshot: boolean;
     scrot: boolean;
-    xdotool: boolean;
-    wtype: boolean;
-    ydotool: boolean;
+    wlCopy: boolean;
+    xclip: boolean;
   };
 }
 
@@ -56,9 +55,8 @@ export function detect(): Environment {
       slurp: hasCommand("slurp"),
       gnomeScreenshot: hasCommand("gnome-screenshot"),
       scrot: hasCommand("scrot"),
-      xdotool: hasCommand("xdotool"),
-      wtype: hasCommand("wtype"),
-      ydotool: hasCommand("ydotool"),
+      wlCopy: hasCommand("wl-copy"),
+      xclip: hasCommand("xclip"),
     },
   };
 }

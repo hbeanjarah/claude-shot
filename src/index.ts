@@ -52,15 +52,15 @@ program
     }
 
     if (opts.inject && terminal !== "zellij") {
-      if (env.display === "wayland" && !env.tools.wtype) {
+      if (env.display === "wayland" && !env.tools.wlCopy) {
         console.error(
-          "Missing wtype for terminal injection. Run:\n  sudo apt install wtype",
+          "Missing wl-copy for clipboard injection. Run:\n  sudo apt install wl-clipboard",
         );
         process.exit(2);
       }
-      if (env.display === "x11" && !env.tools.xdotool) {
+      if (env.display === "x11" && !env.tools.xclip) {
         console.error(
-          "Missing xdotool for terminal injection. Run:\n  sudo apt install xdotool",
+          "Missing xclip for clipboard injection. Run:\n  sudo apt install xclip",
         );
         process.exit(2);
       }
