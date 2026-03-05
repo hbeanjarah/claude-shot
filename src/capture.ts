@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import fs from "node:fs";
 import type { DisplayServer } from "./detect.js";
 
 export class CaptureError extends Error {
@@ -40,10 +41,14 @@ async function captureWayland(
 
   try {
     await execa("gnome-screenshot", ["-a", "-f", outputPath]);
-    return outputPath;
   } catch {
     throw new CaptureError("Selection cancelled.", true);
   }
+
+  if (!fs.existsSync(outputPath)) {
+    throw new CaptureError("Selection cancelled.", true);
+  }
+  return outputPath;
 }
 
 async function captureX11(outputPath: string): Promise<string> {
