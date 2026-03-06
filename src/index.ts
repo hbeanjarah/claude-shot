@@ -12,21 +12,18 @@ program
   .name("claude-shot")
   .description("Screenshot-to-Claude Code in one shortcut")
   .version("0.1.0")
-  .option("-o, --output <dir>", "Output directory", "/tmp")
+  .option("-o, --output <dir>", "Output directory")
   .option("--dry-run", "Show what would happen without executing")
-  .option(
-    "--no-inject",
-    "Capture and save only, do not type path into terminal",
-  )
+  .option("--no-inject", "Capture only, do not copy to clipboard")
   .option("--last", "Re-copy the most recent screenshot to clipboard")
   .action(async (opts) => {
     const env = detect();
+    const config = loadConfig();
+    const outputDir = opts.output || config.outputDir;
 
     if (opts.last) {
-      const config = loadConfig();
-      const dir = opts.output || config.outputDir;
       const files = fs
-        .readdirSync(dir)
+        .readdirSync(outputDir)
         .filter((f) => f.startsWith("claude-shot-") && f.endsWith(".png"))
         .sort()
         .reverse();
@@ -34,15 +31,13 @@ program
         console.error("No screenshots found.");
         process.exit(1);
       }
-      const latest = path.join(dir, files[0]);
+      const latest = path.join(outputDir, files[0]);
       await inject(latest, env.display);
-      console.log(latest);
       return;
     }
 
-    //
     if (isFirstRun()) {
-      runSetup();
+      await runSetup();
     }
 
     // Check required tools
@@ -86,20 +81,17 @@ program
       }
     }
 
-    const outputPath = generatePath(opts.output);
+    const outputPath = generatePath(outputDir);
 
     // Capture
     try {
       await capture(env.display, outputPath, env.compositor);
     } catch (err) {
       if (err instanceof CaptureError && err.cancelled) {
-        console.log("Cancelled.");
         process.exit(1);
       }
       throw err;
     }
-
-    console.log(outputPath);
 
     // Inject
     if (opts.inject) {
@@ -110,8 +102,8 @@ program
 program
   .command("setup")
   .description("Check dependencies and configure keyboard shortcut")
-  .action(() => {
-    runSetup();
+  .action(async () => {
+    await runSetup();
   });
 
 program.parse();
