@@ -1,3 +1,5 @@
+import { spawn } from "node:child_process";
+import fs from "node:fs";
 import { execa } from "execa";
 import type { DisplayServer } from "./detect.js";
 
@@ -6,7 +8,14 @@ export async function inject(
   display: DisplayServer,
 ): Promise<void> {
   if (display === "wayland") {
-    await execa("wl-copy", ["--type", "image/png"], { inputFile: filePath });
+    const input = fs.readFileSync(filePath);
+    const proc = spawn("wl-copy", ["--type", "image/png"], {
+      stdio: ["pipe", "ignore", "ignore"],
+      detached: true,
+    });
+    proc.stdin.write(input);
+    proc.stdin.end();
+    proc.unref();
   } else {
     await execa("xclip", [
       "-selection",
