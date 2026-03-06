@@ -1,10 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
 import { program } from "commander";
 import { detect } from "./detect.js";
 import { generatePath } from "./storage.js";
 import { capture, CaptureError } from "./capture.js";
 import { inject } from "./inject.js";
-
-import { isFirstRun } from "./config.js";
+import { isFirstRun, loadConfig } from "./config.js";
 import { runSetup } from "./setup.js";
 
 program
@@ -17,8 +18,27 @@ program
     "--no-inject",
     "Capture and save only, do not type path into terminal",
   )
+  .option("--last", "Re-copy the most recent screenshot to clipboard")
   .action(async (opts) => {
     const env = detect();
+
+    if (opts.last) {
+      const config = loadConfig();
+      const dir = opts.output || config.outputDir;
+      const files = fs
+        .readdirSync(dir)
+        .filter((f) => f.startsWith("claude-shot-") && f.endsWith(".png"))
+        .sort()
+        .reverse();
+      if (files.length === 0) {
+        console.error("No screenshots found.");
+        process.exit(1);
+      }
+      const latest = path.join(dir, files[0]);
+      await inject(latest, env.display);
+      console.log(latest);
+      return;
+    }
 
     //
     if (isFirstRun()) {
