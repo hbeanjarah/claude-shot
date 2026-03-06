@@ -1,20 +1,24 @@
 {
   "name": "claude-shot",
   "version": "0.1.0",
-  "description": "",
+  "description": "Screenshot-to-Claude Code in one shortcut",
   "type": "module",
   "bin": {
     "claude-shot": "dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hbeanjarah/claude-shot"
+  },
   "scripts": {
     "build": "tsup",
-    "dev": "tsx src/index.ts",
+    "dev": "tsx src/index.ts --",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "tsc --noEmit"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["screenshot", "claude", "cli", "ubuntu", "wayland", "clipboard"],
+  "author": "hbeanjarah",
   "license": "MIT",
   "packageManager": "pnpm@10.28.2",
   "dependencies": {
