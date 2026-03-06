@@ -1,5 +1,9 @@
 # claude-shot
 
+[![npm version](https://img.shields.io/npm/v/claude-shot)](https://www.npmjs.com/package/claude-shot)
+[![license](https://img.shields.io/npm/l/claude-shot)](https://github.com/hbeanjarah/claude-shot/blob/main/LICENSE)
+[![downloads](https://img.shields.io/npm/dm/claude-shot)](https://www.npmjs.com/package/claude-shot)
+
 Screenshot-to-Claude Code in one shortcut. Capture a screen area and paste it directly into Claude Code with Ctrl+V.
 
 ## How it works
