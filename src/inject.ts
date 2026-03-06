@@ -27,9 +27,13 @@ export async function inject(
     ]);
   }
 
-  await execa("notify-send", [
-    "claude-shot",
-    "Screenshot copied — paste into Claude Code",
-    "--expire-time=3000",
-  ]);
+  try {
+    await execa("notify-send", [
+      "claude-shot",
+      "Screenshot copied — paste into Claude Code",
+      "--expire-time=3000",
+    ]);
+  } catch {
+    // Best-effort: notification is nice but not required
+  }
 }

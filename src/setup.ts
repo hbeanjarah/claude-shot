@@ -2,14 +2,42 @@ import { execaSync } from "execa";
 import { detect } from "./detect.js";
 import { saveConfig, loadConfig } from "./config.js";
 import type { Config } from "./config.js";
+import readline from "node:readline";
 
 function log(symbol: string, msg: string): void {
   console.log(`  ${symbol} ${msg}`);
 }
 
-function checkDependencies(): boolean {
+function getMissingPackages(): string[] {
   const env = detect();
-  let ok = true;
+  const missing: string[] = [];
+
+  if (env.display === "wayland") {
+    if (env.compositor === "gnome") {
+      if (!env.tools.gnomeScreenshot) missing.push("gnome-screenshot");
+    } else {
+      if (!env.tools.grim) missing.push("grim");
+      if (!env.tools.slurp) missing.push("slurp");
+    }
+    if (!env.tools.wlCopy) missing.push("wl-clipboard");
+  } else {
+    if (!env.tools.gnomeScreenshot && !env.tools.scrot)
+      missing.push("gnome-screenshot");
+    if (!env.tools.xclip) missing.push("xclip");
+  }
+
+  try {
+    execaSync("which", ["notify-send"]);
+  } catch {
+    missing.push("libnotify-bin");
+  }
+
+  return missing;
+}
+
+function checkDependencies(): string[] {
+  const env = detect();
+  const missing = getMissingPackages();
 
   console.log("\nChecking dependencies...\n");
 
@@ -18,36 +46,22 @@ function checkDependencies(): boolean {
     if (env.compositor === "gnome") {
       env.tools.gnomeScreenshot
         ? log("✓", "gnome-screenshot found")
-        : (log(
-            "✗",
-            "gnome-screenshot missing → sudo apt install gnome-screenshot",
-          ),
-          (ok = false));
+        : log("✗", "gnome-screenshot missing");
     } else {
-      env.tools.grim
-        ? log("✓", "grim found")
-        : (log("✗", "grim missing → sudo apt install grim"), (ok = false));
-      env.tools.slurp
-        ? log("✓", "slurp found")
-        : (log("✗", "slurp missing → sudo apt install slurp"), (ok = false));
+      env.tools.grim ? log("✓", "grim found") : log("✗", "grim missing");
+      env.tools.slurp ? log("✓", "slurp found") : log("✗", "slurp missing");
     }
   } else {
     env.tools.gnomeScreenshot || env.tools.scrot
       ? log("✓", "screenshot tool found")
-      : (log("✗", "no screenshot tool → sudo apt install gnome-screenshot"),
-        (ok = false));
+      : log("✗", "no screenshot tool found");
   }
 
   // Clipboard tools
   if (env.display === "wayland") {
-    env.tools.wlCopy
-      ? log("✓", "wl-copy found")
-      : (log("✗", "wl-copy missing → sudo apt install wl-clipboard"),
-        (ok = false));
+    env.tools.wlCopy ? log("✓", "wl-copy found") : log("✗", "wl-copy missing");
   } else {
-    env.tools.xclip
-      ? log("✓", "xclip found")
-      : (log("✗", "xclip missing → sudo apt install xclip"), (ok = false));
+    env.tools.xclip ? log("✓", "xclip found") : log("✗", "xclip missing");
   }
 
   // Notification
@@ -55,11 +69,36 @@ function checkDependencies(): boolean {
     execaSync("which", ["notify-send"]);
     log("✓", "notify-send found");
   } catch {
-    log("✗", "notify-send missing → sudo apt install libnotify-bin");
-    ok = false;
+    log("✗", "notify-send missing");
   }
 
-  return ok;
+  return missing;
+}
+
+function askYesNo(question: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() !== "n");
+    });
+  });
+}
+
+async function installPackages(packages: string[]): Promise<boolean> {
+  const cmd = `sudo apt install -y ${packages.join(" ")}`;
+  console.log(`\n  Running: ${cmd}\n`);
+  try {
+    execaSync("sudo", ["apt", "install", "-y", ...packages], {
+      stdio: "inherit",
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function registerShortcut(shortcut: string): boolean {
@@ -134,21 +173,35 @@ function registerShortcut(shortcut: string): boolean {
   }
 }
 
-export function runSetup(): void {
+export async function runSetup(): Promise<void> {
   console.log("claude-shot setup");
   console.log("─".repeat(40));
 
-  const depsOk = checkDependencies();
+  const missing = checkDependencies();
 
-  if (!depsOk) {
-    console.log("\nInstall missing dependencies and run: claude-shot setup");
-    process.exit(2);
+  if (missing.length > 0) {
+    console.log(`\n  Missing: ${missing.join(", ")}`);
+    const install = await askYesNo(
+      "\n  Install missing dependencies? (requires sudo) [Y/n] ",
+    );
+
+    if (install) {
+      const ok = await installPackages(missing);
+      if (!ok) {
+        console.error("\n  Failed to install dependencies.");
+        process.exit(2);
+      }
+      log("✓", "Dependencies installed");
+    } else {
+      console.log("\n  Skipped. Install manually and run: claude-shot setup");
+      process.exit(2);
+    }
   }
 
   const config: Config = loadConfig();
   registerShortcut(config.shortcut);
   saveConfig(config);
 
-  console.log("  ✓ Config saved to ~/.config/claude-shot/config.json");
+  log("✓", "Config saved to ~/.config/claude-shot/config.json");
   console.log(`\nReady! Press ${config.shortcut} to capture.\n`);
 }
