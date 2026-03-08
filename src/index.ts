@@ -6,7 +6,7 @@ import { generatePath } from "./storage.js";
 import { capture, CaptureError } from "./capture.js";
 import { inject } from "./inject.js";
 import { isFirstRun, loadConfig } from "./config.js";
-import { runSetup } from "./setup.js";
+import { runSetup, runUninstall } from "./setup.js";
 
 program
   .name("claude-shot")
@@ -86,6 +86,7 @@ program
     // Capture
     try {
       await capture(env.display, outputPath, env.compositor);
+      fs.chmodSync(outputPath, 0o600);
     } catch (err) {
       if (err instanceof CaptureError && err.cancelled) {
         process.exit(1);
@@ -104,6 +105,13 @@ program
   .description("Check dependencies and configure keyboard shortcut")
   .action(async () => {
     await runSetup();
+  });
+
+program
+  .command("uninstall")
+  .description("Remove claude-shot config and keyboard shortcut")
+  .action(() => {
+    runUninstall();
   });
 
 program.parse();
