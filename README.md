@@ -18,6 +18,12 @@ No file paths. No drag-and-drop. No context switching.
 ## Install
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/hbeanjarah/claude-shot/main/install.sh | bash
+```
+
+Or via npm directly:
+
+```bash
 npm i -g claude-shot
 ```
 
@@ -57,6 +63,7 @@ claude-shot --no-inject  # capture only, don't copy to clipboard
 claude-shot --dry-run    # show what would happen
 claude-shot -o ~/shots   # custom output directory
 claude-shot setup        # re-run setup (reconfigure shortcut)
+claude-shot uninstall    # remove config, shortcut, and screenshots
 ```
 
 ## Configuration

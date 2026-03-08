@@ -1,8 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import readline from "node:readline";
 import { execaSync } from "execa";
 import { detect } from "./detect.js";
 import { saveConfig, loadConfig } from "./config.js";
 import type { Config } from "./config.js";
-import readline from "node:readline";
 
 function log(symbol: string, msg: string): void {
   console.log(`  ${symbol} ${msg}`);
@@ -171,6 +174,90 @@ function registerShortcut(shortcut: string): boolean {
     log("✗", "Failed to register keyboard shortcut");
     return false;
   }
+}
+
+function removeShortcut(): void {
+  try {
+    const name = "claude-shot";
+    const schema =
+      "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding";
+
+    const existing = execaSync("gsettings", [
+      "get",
+      "org.gnome.settings-daemon.plugins.media-keys",
+      "custom-keybindings",
+    ]).stdout.trim();
+
+    let bindings: string[];
+    if (existing === "@as []" || existing === "[]") {
+      log("✓", "No keyboard shortcut to remove");
+      return;
+    }
+
+    bindings = existing
+      .replace(/^\[/, "")
+      .replace(/\]$/, "")
+      .split(",")
+      .map((s) => s.trim().replace(/'/g, ""));
+
+    const updated = bindings.filter((binding) => {
+      try {
+        const n = execaSync("gsettings", [
+          "get",
+          `${schema}:${binding}`,
+          "name",
+        ])
+          .stdout.trim()
+          .replace(/'/g, "");
+        return n !== name;
+      } catch {
+        return true;
+      }
+    });
+
+    const bindingsArr = JSON.stringify(updated);
+    execaSync("gsettings", [
+      "set",
+      "org.gnome.settings-daemon.plugins.media-keys",
+      "custom-keybindings",
+      bindingsArr,
+    ]);
+
+    log("✓", "Keyboard shortcut removed");
+  } catch {
+    log("✗", "Failed to remove keyboard shortcut");
+  }
+}
+
+export function runUninstall(): void {
+  console.log("claude-shot uninstall");
+  console.log("─".repeat(40));
+
+  // Remove keyboard shortcut
+  removeShortcut();
+
+  // Remove config
+  const configPath = path.join(os.homedir(), ".config", "claude-shot");
+  if (fs.existsSync(configPath)) {
+    fs.rmSync(configPath, { recursive: true });
+    log("✓", "Config removed (~/.config/claude-shot)");
+  } else {
+    log("✓", "No config to remove");
+  }
+
+  // Remove screenshots
+  const tmpFiles = fs
+    .readdirSync("/tmp")
+    .filter((f) => f.startsWith("claude-shot-") && f.endsWith(".png"));
+  if (tmpFiles.length > 0) {
+    for (const f of tmpFiles) {
+      fs.unlinkSync(path.join("/tmp", f));
+    }
+    log("✓", `Removed ${tmpFiles.length} screenshot(s) from /tmp`);
+  }
+
+  console.log("\nTo finish, run:\n");
+  console.log("  npm uninstall -g claude-shot\n");
 }
 
 export async function runSetup(): Promise<void> {
