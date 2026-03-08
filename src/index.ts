@@ -6,7 +6,7 @@ import { generatePath } from "./storage.js";
 import { capture, CaptureError } from "./capture.js";
 import { inject } from "./inject.js";
 import { isFirstRun, loadConfig } from "./config.js";
-import { runSetup, runUninstall } from "./setup.js";
+import { runSetup, runUninstall, getMissingPackages } from "./setup.js";
 
 program
   .name("claude-shot")
@@ -36,49 +36,8 @@ program
       return;
     }
 
-    if (isFirstRun()) {
+    if (isFirstRun() || getMissingPackages().length > 0) {
       await runSetup();
-    }
-
-    // Check required tools
-    if (env.display === "wayland") {
-      if (env.compositor === "gnome") {
-        if (!env.tools.gnomeScreenshot) {
-          console.error(
-            "Missing required tools. Run:\n  sudo apt install gnome-screenshot",
-          );
-          process.exit(2);
-        }
-      } else {
-        if (!env.tools.grim || !env.tools.slurp) {
-          console.error(
-            "Missing required tools. Run:\n  sudo apt install grim slurp",
-          );
-          process.exit(2);
-        }
-      }
-    } else {
-      if (!env.tools.gnomeScreenshot && !env.tools.scrot) {
-        console.error(
-          "Missing required tools. Run:\n  sudo apt install gnome-screenshot",
-        );
-        process.exit(2);
-      }
-    }
-
-    if (opts.inject) {
-      if (env.display === "wayland" && !env.tools.wlCopy) {
-        console.error(
-          "Missing wl-copy for clipboard. Run:\n  sudo apt install wl-clipboard",
-        );
-        process.exit(2);
-      }
-      if (env.display === "x11" && !env.tools.xclip) {
-        console.error(
-          "Missing xclip for clipboard. Run:\n  sudo apt install xclip",
-        );
-        process.exit(2);
-      }
     }
 
     const outputPath = generatePath(outputDir);

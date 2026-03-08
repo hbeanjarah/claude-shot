@@ -11,7 +11,7 @@ function log(symbol: string, msg: string): void {
   console.log(`  ${symbol} ${msg}`);
 }
 
-function getMissingPackages(): string[] {
+export function getMissingPackages(): string[] {
   const env = detect();
   const missing: string[] = [];
 
